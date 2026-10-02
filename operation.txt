@@ -1,0 +1,128 @@
+Starting Up
+
+At power on the Pico expect a USB cable connected to a computer
+running a serial terminal program (Minicom, etc).
+
+From now on, the term 'computer' will mean the Pi Pico based
+system.
+
+As it starts up, the computer will display some diagnostic
+messages. When it is ready, it will prompt for year, month, day,
+hour, minute. Enter a valid time.
+
+More diagnostic messages will be displayed. When Running in multi
+user mode you will see a prompt from the 8080 codeed operating system.
+
+Below is a screen shot of this process:
+
+---------- Begin Screen Capture ------------
+
+### System Coming Up ###
+
+Serial port Setup Complete
+initializing PSRAM
+Writing test data to address 0x001000...
+Reading back data...
+Byte 0 - Written: 0xAA, Read: 0xAA
+Byte 1 - Written: 0xBB, Read: 0xBB
+Byte 2 - Written: 0xCC, Read: 0xCC
+Byte 3 - Written: 0xDD, Read: 0xDD
+Byte 4 - Written: 0x11, Read: 0x11
+Byte 5 - Written: 0x22, Read: 0x22
+Byte 6 - Written: 0x33, Read: 0x33
+Byte 7 - Written: 0x44, Read: 0x44
+PSRAM Read/Write Successful!
+Initializing the System Clock:
+
+--- Enter Current Local Date/Time ---
+Enter Year (e.g. 2026): 2026
+Enter Month (1-12): 10
+Enter Day (1-31): 2
+Enter Hour (0-23): 10
+Enter Minute (0-59): 28
+
+Time Set
+Current Date/Time: 
+2026-10-02 10:28:00
+Clearing RAM Memory (user)
+Loading boot.hex for user 0
+Loading boot.hex for user 1
+Loading boot.hex for user 2
+Loading boot.hex for user 3
+Loading boot.hex for user 4
+
+RAM setup complete
+Initializing Registers USER 0  1  2  3  4  
+Setting up Ports and Hardware
+Initial Setup Complete
+Entering Multi-user Mode
+Starting Context Switching
+Entering Execution Loop
+### System Running ###
+
+
+OS1 version 0.4
+Type 'help' if needed.
+
+OS1> 
+
+---------- End Screen Capture ---------------
+
+Typing a command or the <enter> key will start a login
+process. Type 'login' (no quotes). At the User: prompt
+type 'fred' (no quotes) and press <enter>. At the Password:
+prompt type 'derf' (no quotes).
+
+Username/password is defined in emulator_1.c in the input port 253
+routine (about line 2800). This will change later. 
+
+You will be greeted with an OS1> prompt. At this point
+the 8080 program 'boot.hex' is running things. Typing 'help'
+and <enter> will show the following:
+
+---------- Begin Screen Capture ------------
+
+OS1> help
+
+** Built In Commands **
+----------------------------------------------------
+login   - log into the system
+logout  - log out of the system
+new     - clear user memory
+ver     - show version
+run     - restart program loaded in memory
+clear   - clear the screen
+dir     - show the disk directory
+type    - display contents of a file
+del     - delete a disk file
+era     - delete a disk file (CP/M compatibility)
+create  - create an empty disk file
+ren     - rename a disk file
+copy    - copy a file
+stat    - display file attributes
+date    - display time and date
+OS1> 
+
+ ---------- End Screen Capture ---------------
+
+Any command entered that is not a built in command is assumed to
+be a compiled program resiging on the SD card. The program extension
+is assumed to be .com 
+
+If you type in 'diag' <enter> the OS will add the .com extension, load
+the diag.com program into memory and begin execution. When the diag.com
+program ends, it will jump to address 0x0000 which jumps to the boot.hex
+start address. All user compiled programs start at location 0x100 (decimal 256).
+
+The computer is NOT currently set up to run CP/M programs. Likely this will
+change in the future.
+
+There is no special shutdown proceedure. Just turn off power.
+
+File operations are atomic among users. While a file is being created, updated
+etc from the SD card, all other operations stop. Typically this is so fast
+that other users will not notice a slowdown. Also, the file system is mounted
+and unmounted for all file operations. At the end of a file process 
+all pointers and files are closed so other users cannot damage files in-use.
+
+
