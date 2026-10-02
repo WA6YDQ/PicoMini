@@ -1,0 +1,1462 @@
+*** Starting PASS 1
+*** Starting PASS 2
+
+FB2C conout
+
+FB2C conin
+
+FB2C CR
+
+FB2C LF
+
+FB2C NULL
+
+FB2C LOGSTAT
+
+FB2C WARMBOOT
+
+FB2C LOGNAME
+
+FB2C TIMEBUF
+
+FB2C buffer
+
+FB2C STACK
+
+FB2C OSSTART
+
+FB2C TPA
+
+FB2C TPAEND
+
+FB2C BOOT
+
+FB2C IOBYTE
+
+FB2C STARTSEED
+
+FB2C FCB
+
+FB2C FCBDRIVECODE
+
+FB2C FILENAME
+
+FB2C FILETYPE
+
+FB2C FCBEXTENT
+
+FB2C FCBS1
+
+FB2C FCBS2
+
+FB2C FCBRC
+
+FB2C FCBDN
+
+FB2C FCBCR
+
+FB2C FCBR0
+
+FB2C FCBR1
+
+FB2C FCBR2
+
+FB2C FCBSTARTHI
+
+FB2C FCBSTARTLO
+
+FB2C FCBENDHI
+
+FB2C FCBENDLO
+
+FB2C FCBSTATUS
+
+FB2C FILENAME2
+
+FB2C FILETYPE2
+org 0x0000
+0000 C3 F000 jmp OSSTART
+org 0x0003
+0003 	db 0
+org 0x0004
+0004 	db 0
+org 0x0005
+0005 C3 FA4E jmp BDOS
+org 0xF000
+F000 3A FFFE lda WARMBOOT
+F003 FE 01   cpi 1
+F005 CA F052 jz WBOOT
+F008 C3 F03E jmp COLDBOOT
+
+F00B bootmessage
+F00B bootmessage	db	CR,LF,"OS1 version 0.4",CR,LF,NULL	
+
+F01F helpmessage
+F01F helpmessage db  "Type 'help' if needed.",CR,LF,NULL
+
+F038 PROMPT
+F038 PROMPT      DB  "OS1> ",NULL
+
+F03E COLDBOOT
+F03E 3E 00   mvi a 0
+F040 32 FFFF sta LOGSTAT
+F043 21 F00B lxi h bootmessage
+F046 CD F83C call puts
+F049 21 F01F lxi h helpmessage
+F04C CD F83C call puts
+F04F C3 F052 jmp WBOOT
+
+F052 WBOOT
+
+F052 loop0
+F052 3E 01   mvi a 1
+F054 32 FFFE sta WARMBOOT
+F057 31 FE00 lxi sp STACK
+F05A 3E 0D   mvi a CR
+F05C CD F839 call putc
+F05F 3E 0A   mvi a LF
+F061 CD F839 call putc
+
+F064 CCP
+F064 21 F038 lxi h PROMPT
+F067 CD F83C call puts
+F06A 0E 50   mvi c 80
+F06C 21 FE01 lxi h buffer
+F06F CD F84A call memset
+F072 0E 50   mvi c 80
+F074 21 FE01 lxi h buffer
+F077 CD F85C call gets
+F07A 3E 0D   mvi a CR
+F07C CD F839 call putc
+F07F 3E 0A   mvi a LF
+F081 CD F839 call putc
+F084 11 F1C9 lxi d login_cmd
+F087 21 FE01 lxi h buffer
+F08A CD F8D6 call strcmp
+F08D FE 00   cpi 0
+F08F CA F226 jz login_user
+F092 3A FFFF lda LOGSTAT
+F095 FE FF   cpi ffh
+F097 CA F0A3 jz CCP1
+F09A 21 F29C lxi h LOGMSG0
+F09D CD F83C call puts
+F0A0 C3 F064 jmp CCP
+
+F0A3 CCP1
+F0A3 21 FE01 lxi h buffer
+F0A6 7E      mov a,m
+F0A7 FE 00   cpi NULL
+F0A9 CA F064 jz CCP
+F0AC FE 0D   cpi CR
+F0AE CA F064 jz CCP
+F0B1 11 F1CF lxi d logout_cmd
+F0B4 21 FE01 lxi h buffer
+F0B7 CD F8D6 call strcmp
+F0BA FE 00   cpi 0
+F0BC CA F218 jz logout_user
+F0BF 11 F1D6 lxi d ver_cmd
+F0C2 21 FE01 lxi h buffer
+F0C5 CD F8D6 call strcmp
+F0C8 FE 00   cpi 0
+F0CA CA F4AC jz show_version
+F0CD 11 F1DA lxi d run_cmd
+F0D0 21 FE01 lxi h buffer
+F0D3 CD F8D6 call strcmp
+F0D6 FE 00   cpi 0
+F0D8 CA 0100 jz 100h
+F0DB 11 F1F1 lxi d type_cmd
+F0DE 21 FE01 lxi h buffer
+F0E1 CD F8D6 call strcmp
+F0E4 FE 00   cpi 0
+F0E6 CA F749 jz type_file
+F0E9 11 F1DE lxi d dir_cmd
+F0EC 21 FE01 lxi h buffer
+F0EF CD F8D6 call strcmp
+F0F2 FE 00   cpi 0
+F0F4 CA F4B5 jz show_dir
+F0F7 11 F1E2 lxi d new_cmd
+F0FA 21 FE01 lxi h buffer
+F0FD CD F8D6 call strcmp
+F100 FE 00   cpi 0
+F102 CA F4DA jz new
+F105 11 F1E6 lxi d cls_cmd
+F108 21 FE01 lxi h buffer
+F10B CD F8D6 call strcmp
+F10E FE 00   cpi 0
+F110 CA F4F3 jz clrscr
+F113 11 F1EC lxi d help_cmd
+F116 21 FE01 lxi h buffer
+F119 CD F8D6 call strcmp
+F11C FE 00   cpi 0
+F11E CA F4F9 jz show_help
+F121 11 F1F6 lxi d del_cmd
+F124 21 FE01 lxi h buffer
+F127 CD F8D6 call strcmp
+F12A FE 00   cpi 0
+F12C CA F435 jz delete_file
+F12F 11 F1FA lxi d era_cmd
+F132 21 FE01 lxi h buffer
+F135 CD F8D6 call strcmp
+F138 FE 00   cpi 0
+F13A CA F435 jz delete_file
+F13D 11 F202 lxi d create_cmd
+F140 21 FE01 lxi h buffer
+F143 CD F8D6 call strcmp
+F146 FE 00   cpi 0
+F148 CA F3D7 jz create_file
+F14B 11 F209 lxi d date_cmd
+F14E 21 FE01 lxi h buffer
+F151 CD F8D6 call strcmp
+F154 FE 00   cpi 0
+F156 CA F2F0 jz show_daytime
+F159 11 F20E lxi d copy_cmd
+F15C 21 FE01 lxi h buffer
+F15F CD F8D6 call strcmp
+F162 FE 00   cpi 0
+F164 CA F397 jz copy_file
+F167 11 F213 lxi d stat_cmd
+F16A 21 FE01 lxi h buffer
+F16D CD F8D6 call strcmp
+F170 FE 00   cpi 0
+F172 CA F311 jz stat_file
+F175 CD F932 call clear_fcb
+F178 CD F4E0 call clear_tpa
+F17B CD F942 call get_filename
+F17E FE 01   cpi 1
+F180 CA F191 jz err1
+F183 CD FA46 call load_diskfile
+F186 3A 0084 lda FCBSTATUS
+F189 FE 00   cpi 0
+F18B C2 F191 jnz err1
+F18E C3 0100 jmp 100h
+
+F191 err1
+F191 21 F1AD lxi h error_msg
+F194 CD F83C call puts
+F197 3E 22   mvi a '"'
+F199 CD F839 call putc
+F19C 21 FE01 lxi h buffer
+F19F CD F83C call puts
+F1A2 3E 22   mvi a '"'
+F1A4 CD F839 call putc
+F1A7 CD F7EE call crlf
+F1AA C3 F064 jmp CCP
+
+F1AD error_msg
+F1AD error_msg	DB "Bad Command or File Name: ",NULL	
+
+F1C8 SEED
+F1C8 SEED	DB	STARTSEED		
+
+F1C9 login_cmd
+F1C9 login_cmd	DB "login",NULL
+
+F1CF logout_cmd
+F1CF logout_cmd	DB "logout",NULL
+
+F1D6 ver_cmd
+F1D6 ver_cmd		DB "ver",NULL		
+
+F1DA run_cmd
+F1DA run_cmd		DB "run",NULL
+
+F1DE dir_cmd
+F1DE dir_cmd		DB "dir",NULL
+
+F1E2 new_cmd
+F1E2 new_cmd		DB "new",NULL
+
+F1E6 cls_cmd
+F1E6 cls_cmd		DB "clear",NULL
+
+F1EC help_cmd
+F1EC help_cmd	DB "help",NULL
+
+F1F1 type_cmd
+F1F1 type_cmd	DB "type",NULL
+
+F1F6 del_cmd
+F1F6 del_cmd		DB "del",NULL
+
+F1FA era_cmd
+F1FA era_cmd		DB "era",NULL
+
+F1FE ren_cmd
+F1FE ren_cmd		DB "ren",NULL
+
+F202 create_cmd
+F202 create_cmd	DB "create",NULL
+
+F209 date_cmd
+F209 date_cmd	DB "date",NULL
+
+F20E copy_cmd
+F20E copy_cmd	DB	"copy",NULL
+
+F213 stat_cmd
+F213 stat_cmd	DB	"stat",NULL
+
+F218 logout_user
+F218 21 F2CC lxi h LOGMSG4
+F21B CD F83C call puts
+F21E 3E 00   mvi a 0
+F220 32 FFFF sta LOGSTAT
+F223 C3 F064 jmp CCP
+
+F226 login_user
+F226 0E 20   mvi c 32
+F228 3E 00   mvi a NULL
+F22A 21 FEA3 lxi h LOGNAME
+
+F22D login0
+F22D 77      mov m,a
+F22E 23      inx h
+F22F 0D      dcr c
+F230 C2 F22D jnz login0
+F233 21 F2AB lxi h LOGMSG1
+F236 CD F83C call puts
+F239 0E 50   mvi c 80
+F23B 21 FE01 lxi h buffer
+F23E CD F84A call memset
+F241 0E 10   mvi c 16
+F243 21 FE01 lxi h buffer
+F246 CD F85C call gets
+F249 21 FE01 lxi h buffer
+F24C 11 FEA3 lxi d LOGNAME
+
+F24F login1
+F24F 7E      mov a,m
+F250 FE 00   cpi NULL
+F252 CA F25B jz login2
+F255 12      stax d
+F256 23      inx h
+F257 13      inx d
+F258 C3 F24F jmp login1
+
+F25B login2
+F25B 21 F2B2 lxi h LOGMSG2
+F25E CD F83C call puts
+F261 0E 50   mvi c 80
+F263 21 FE01 lxi h buffer
+F266 CD F84A call memset
+F269 0E 10   mvi c 16
+F26B 21 FE01 lxi h buffer
+F26E CD F85C call gets
+F271 21 FE01 lxi h buffer
+
+F274 login3
+F274 7E      mov a,m
+F275 FE 00   cpi NULL
+F277 CA F280 jz login4
+F27A 12      stax d
+F27B 23      inx h
+F27C 13      inx d
+F27D C3 F274 jmp login3
+
+F280 login4
+F280 DB FD   in 253
+F282 32 FFFF sta LOGSTAT
+F285 FE 00   cpi 0
+F287 C2 F293 jnz login5
+F28A 21 F2D9 lxi h LOGFAIL
+F28D CD F83C call puts
+F290 C3 F064 jmp CCP
+
+F293 login5
+F293 21 F2BF lxi h LOGMSG3
+F296 CD F83C call puts
+F299 C3 F064 jmp CCP
+
+F29C LOGMSG0
+F29C LOGMSG0		DB "Login Please",CR,LF,NULL
+
+F2AB LOGMSG1
+F2AB LOGMSG1		DB "User: ",NULL
+
+F2B2 LOGMSG2
+F2B2 LOGMSG2		DB CR,LF,"Password: ",NULL
+
+F2BF LOGMSG3
+F2BF LOGMSG3		DB CR,LF,"Welcome!",CR,LF,NULL
+
+F2CC LOGMSG4
+F2CC LOGMSG4		DB CR,LF,"Goodbye!",CR,LF,NULL
+
+F2D9 LOGFAIL
+F2D9 LOGFAIL		DB CR,LF,"Bad Login/Password",CR,LF,NULL
+
+F2F0 show_daytime
+F2F0 3E 00   mvi a 0
+F2F2 D3 FB   out 251
+F2F4 21 FE52 lxi h TIMEBUF
+
+F2F7 s_day0
+F2F7 7E      mov a,m
+F2F8 FE 00   cpi NULL
+F2FA CA F304 jz s_day1
+F2FD CD F839 call putc
+F300 23      inx h
+F301 C3 F2F7 jmp s_day0
+
+F304 s_day1
+F304 3E 0D   mvi a CR
+F306 CD F839 call putc
+F309 3E 0A   mvi a LF
+F30B CD F839 call putc
+F30E C3 F064 jmp CCP
+
+F311 stat_file
+F311 CD F9AC call get_filename2
+F314 21 F358 lxi h STATMSG
+F317 CD F83C call puts
+F31A D3 F9   out 249
+F31C 3A 0084 lda FCBSTATUS
+F31F FE 00   cpi 0
+F321 CA F32D jz stat_file_OK
+F324 21 F336 lxi h STATFAIL
+F327 CD F83C call puts
+F32A C3 F064 jmp CCP
+
+F32D stat_file_OK
+F32D 21 F343 lxi h STATOK
+F330 CD F83C call puts
+F333 C3 F064 jmp CCP
+
+F336 STATFAIL
+F336 STATFAIL	DB	"File Error",CR,LF,NULL
+
+F343 STATOK
+F343 STATOK		DB	"Command Successful",CR,LF,NULL
+
+F358 STATMSG
+F358 STATMSG		DB  "Note: this function does not return all file data correctly",CR,LF,LF,NULL
+
+F397 copy_file
+F397 CD F9AC call get_filename2
+F39A D3 FA   out 250
+F39C 3A 0084 lda FCBSTATUS
+F39F FE 00   cpi 0
+F3A1 CA F3AD jz copy_file_OK
+F3A4 21 F3B6 lxi h COPYFAIL
+F3A7 CD F83C call puts
+F3AA C3 F064 jmp CCP
+
+F3AD copy_file_OK
+F3AD 21 F3C9 lxi h COPYOK
+F3B0 CD F83C call puts
+F3B3 C3 F064 jmp CCP
+
+F3B6 COPYFAIL
+F3B6 COPYFAIL	DB "File Copy Failed",CR,LF,NULL
+
+F3C9 COPYOK
+F3C9 COPYOK		DB "File Copied",CR,LF,NULL
+
+F3D7 create_file
+F3D7 CD F932 call clear_fcb
+F3DA 21 FE01 lxi h buffer
+
+F3DD crf1
+F3DD 23      inx h
+F3DE 7E      mov a,m
+F3DF FE 20   cpi '
+F3E1 C2 F3DD jnz crf1
+
+F3E4 crf2
+F3E4 23      inx h
+F3E5 7E      mov a,m
+F3E6 FE 20   cpi '
+F3E8 CA F3E4 jz crf2
+F3EB CD F945 call get_fname
+F3EE FE 01   cpi 1
+F3F0 CA F191 jz err1
+F3F3 D3 FC   out 252
+F3F5 3A 0084 lda FCBSTATUS
+F3F8 FE 00   cpi 0
+F3FA C2 F406 jnz crf3
+F3FD 21 F40F lxi h create_msg1
+F400 CD F83C call puts
+F403 C3 F064 jmp CCP
+
+F406 crf3
+F406 21 F41E lxi h create_msg2
+F409 CD F83C call puts
+F40C C3 F064 jmp CCP
+
+F40F create_msg1
+F40F create_msg1		DB "File Created",CR,LF,NULL
+
+F41E create_msg2
+F41E create_msg2		DB "File creation Failed",CR,LF,NULL
+
+F435 delete_file
+F435 21 F49C lxi h delete_msg3
+F438 CD F83C call puts
+F43B CD F932 call clear_fcb
+F43E 21 FE01 lxi h buffer
+
+F441 df1
+F441 23      inx h
+F442 7E      mov a,m
+F443 FE 20   cpi '
+F445 C2 F441 jnz df1
+
+F448 df2
+F448 23      inx h
+F449 7E      mov a,m
+F44A FE 20   cpi '
+F44C CA F448 jz df2
+F44F CD F945 call get_fname
+F452 FE 01   cpi 1
+F454 CA F191 jz err1
+F457 D3 FD   out 253
+F459 3A 0084 lda FCBSTATUS
+F45C FE 00   cpi 0
+F45E C2 F46A jnz df3
+F461 21 F473 lxi h delete_msg1
+F464 CD F83C call puts
+F467 C3 F064 jmp CCP
+
+F46A df3
+F46A 21 F482 lxi h delete_msg2
+F46D CD F83C call puts
+F470 C3 F064 jmp CCP
+
+F473 delete_msg1
+F473 delete_msg1		DB "File deleted",CR,LF,NULL
+
+F482 delete_msg2
+F482 delete_msg2		DB "Delete operation Failed",CR,LF,NULL
+
+F49C delete_msg3
+F49C delete_msg3		DB "deleting file",CR,LF,NULL	
+
+F4AC show_version
+F4AC 21 F00B lxi h bootmessage
+F4AF CD F83C call puts
+F4B2 C3 F064 jmp CCP
+
+F4B5 show_dir
+F4B5 DB FF   in 0xff
+F4B7 3E 0D   mvi a CR
+F4B9 CD F839 call putc
+F4BC 3E 0A   mvi a LF
+F4BE CD F839 call putc
+F4C1 C3 F064 jmp CCP
+
+F4C4 SHOWDIR
+F4C4 SHOWDIR	DB	CR,LF,"Directory Listing",CR,LF,NULL
+
+F4DA new
+F4DA CD F4E0 call clear_tpa
+F4DD C3 F064 jmp CCP
+
+F4E0 clear_tpa
+F4E0 21 0100 lxi h TPA
+F4E3 11 EEFF lxi d eeffh
+F4E6 3E 00   mvi a 0
+
+F4E8 c_tpa1
+F4E8 77      mov m,a
+F4E9 23      inx h
+F4EA 1D      dcr e
+F4EB C2 F4E8 jnz c_tpa1
+F4EE 15      dcr d
+F4EF C2 F4E8 jnz c_tpa1
+F4F2 C9      ret
+
+F4F3 clrscr
+F4F3 CD F7FB call clear_screen
+F4F6 C3 F064 jmp CCP
+
+F4F9 show_help
+F4F9 21 F502 lxi h HELPLIST
+F4FC CD F83C call puts
+F4FF C3 F064 jmp CCP
+
+F502 HELPLIST
+F502 HELPLIST	DB CR,LF
+F504 			DB "** Built In Commands **",CR,LF
+F51D 			DB "----------------------------------------------------",CR,LF
+F553 			DB "login   - log into the system",CR,LF
+F572 			DB "logout  - log out of the system",CR,LF
+F593 			DB "new     - clear user memory",CR,LF
+F5B0 			DB "ver     - show version",CR,LF
+F5C8 			DB "run     - restart program loaded in memory",CR,LF
+F5F4 			DB "clear   - clear the screen",CR,LF
+F610 			DB "dir     - show the disk directory",CR,LF
+F633 			DB "type    - display contents of a file",CR,LF
+F659 			DB "del     - delete a disk file",CR,LF
+F677 			DB "era     - delete a disk file (CP/M compatibility)",CR,LF
+F6AA 			DB "create  - create an empty disk file",CR,LF
+F6CF 			DB "ren     - rename a disk file",CR,LF
+F6ED 			DB "copy    - copy a file",CR,LF
+F704 			DB "stat    - display file attributes",CR,LF
+F727 			DB "date    - display time and date",CR,LF
+F748 			DB NULL
+
+F749 type_file
+F749 CD F932 call clear_fcb
+F74C 21 FE01 lxi h buffer
+
+F74F tf1
+F74F 23      inx h
+F750 7E      mov a,m
+F751 FE 20   cpi '
+F753 C2 F74F jnz tf1
+
+F756 tf2
+F756 23      inx h
+F757 7E      mov a,m
+F758 FE 20   cpi '
+F75A CA F756 jz tf2
+F75D CD F945 call get_fname
+F760 FE 01   cpi 1
+F762 CA F191 jz err1
+F765 CD FA46 call load_diskfile
+F768 3A 0084 lda FCBSTATUS
+F76B FE 00   cpi 0
+F76D C2 F191 jnz err1
+F770 21 0100 lxi h TPA
+F773 2B      dcx h
+
+F774 tf30
+F774 06 0A   mvi b 10
+F776 0E 4F   mvi c 79
+
+F778 tf3
+F778 23      inx h
+F779 3A 0082 lda FCBENDHI
+F77C BC      cmp h
+F77D C2 F78D jnz tf3b
+F780 3A 0083 lda FCBENDLO
+F783 BD      cmp l
+F784 C2 F78D jnz tf3b
+F787 CD F7EE call crlf
+F78A C3 F064 jmp CCP
+
+F78D tf3b
+F78D 7E      mov a,m
+F78E CD F839 call putc
+F791 FE 0D   cpi CR
+F793 CA F79F jz tf3a
+F796 FE 0A   cpi LF
+F798 CA F79F jz tf3a
+F79B 0D      dcr c
+F79C C2 F778 jnz tf3
+
+F79F tf3a
+F79F 0E 4F   mvi c 79
+F7A1 05      dcr b
+F7A2 C2 F778 jnz tf3
+
+F7A5 tf4
+F7A5 E5      push h
+F7A6 21 F7CD lxi h next_page_msg
+F7A9 CD F83C call puts
+F7AC E1      pop h
+
+F7AD tf4a
+F7AD DB 00   in conin
+F7AF FE FE   cpi feh
+F7B1 CA F7AD jz tf4a
+F7B4 FE 71   cpi 'q'
+F7B6 CA F7C4 jz tf5
+F7B9 FE 0D   cpi CR
+F7BB C2 F7AD jnz tf4a
+F7BE CD F81F call clear_line
+F7C1 C3 F774 jmp tf30
+
+F7C4 tf5
+F7C4 CD F81F call clear_line
+F7C7 CD F7EE call crlf
+F7CA C3 F064 jmp CCP
+
+F7CD next_page_msg
+F7CD next_page_msg	DB CR,LF,"Press <cr> for More, Q to Quit",NULL	
+
+F7EE crlf
+F7EE F5      push psw
+F7EF 3E 0D   mvi a CR
+F7F1 CD F839 call putc
+F7F4 3E 0A   mvi a LF
+F7F6 CD F839 call putc
+F7F9 F1      pop psw
+F7FA C9      ret
+
+F7FB clear_screen
+F7FB 3E 1B   mvi a 0x1b
+F7FD CD F839 call putc
+F800 3E 5B   mvi a '['
+F802 CD F839 call putc
+F805 3E 32   mvi a '2'
+F807 CD F839 call putc
+F80A 3E 4A   mvi a 'J'
+F80C CD F839 call putc
+F80F 3E 1B   mvi a 0x1b
+F811 CD F839 call putc
+F814 3E 5B   mvi a '['
+F816 CD F839 call putc
+F819 3E 48   mvi a 'H'
+F81B CD F839 call putc
+F81E C9      ret
+
+F81F clear_line
+F81F F5      push psw
+F820 C5      push b
+F821 0E 4F   mvi c 79
+F823 3E 0D   mvi a CR
+F825 CD F839 call putc
+
+F828 cl1
+F828 3E 20   mvi a '
+F82A CD F839 call putc
+F82D 0D      dcr c
+F82E C2 F828 jnz cl1
+F831 3E 0D   mvi a CR
+F833 CD F839 call putc
+F836 C1      pop b
+F837 F1      pop psw
+F838 C9      ret
+
+F839 putc
+F839 D3 00   out conout
+F83B C9      ret
+
+F83C puts
+F83C 7E      mov a,m
+F83D FE 00   cpi NULL
+F83F C8      rz
+F840 FE 24   cpi '$'
+F842 C8      rz
+F843 CD F839 call putc
+F846 23      inx h
+F847 C3 F83C jmp puts
+
+F84A memset
+F84A 3E 00   mvi a NULL
+F84C 77      mov m,a
+F84D 0D      dcr c
+F84E B9      cmp c
+F84F C8      rz
+F850 23      inx h
+F851 C3 F84A jmp memset
+
+F854 getc
+F854 DB 00   in conin
+F856 FE FE   cpi feh
+F858 C0      rnz
+F859 C3 F854 jmp getc
+
+F85C gets
+F85C CD F854 call getc
+F85F FE 08   cpi 08h
+F861 C2 F881 jnz gets1
+F864 3E 50   mvi a 80
+F866 B9      cmp c
+F867 CA F85C jz gets
+F86A 2B      dcx h
+F86B 3E 00   mvi a NULL
+F86D 77      mov m,a
+F86E 0C      inr c
+F86F 3E 08   mvi a 08h
+F871 CD F839 call putc
+F874 3E 20   mvi a '
+F876 CD F839 call putc
+F879 3E 08   mvi a 08h
+F87B CD F839 call putc
+F87E C3 F85C jmp gets
+
+F881 gets1
+F881 FE 15   cpi 15h
+F883 C2 F8A8 jnz gets2
+F886 21 FE01 lxi h buffer
+F889 0E 50   mvi c 80
+F88B CD F84A call memset
+F88E 21 FE01 lxi h buffer
+F891 0E 50   mvi c 80
+F893 3E 5E   mvi a '^'
+F895 CD F839 call putc
+F898 3E 55   mvi a 'U'
+F89A CD F839 call putc
+F89D CD F7EE call crlf
+F8A0 3E 3E   mvi a '>'
+F8A2 CD F839 call putc
+F8A5 C3 F85C jmp gets
+
+F8A8 gets2
+F8A8 FE 03   cpi 03h
+F8AA C2 F8C2 jnz gets_save
+F8AD 21 FE01 lxi h buffer
+F8B0 0E 50   mvi c 80
+F8B2 CD F84A call memset
+F8B5 3E 5E   mvi a '^'
+F8B7 CD F839 call putc
+F8BA 3E 43   mvi a 'C'
+F8BC CD F839 call putc
+F8BF C3 FFFE jmp WARMBOOT
+
+F8C2 gets_save
+F8C2 CD F839 call putc
+F8C5 FE 0D   cpi CR
+F8C7 C8      rz
+F8C8 77      mov m,a
+F8C9 23      inx h
+F8CA 0D      dcr c
+F8CB 79      mov a,c
+F8CC FE 00   cpi 0
+F8CE C2 F85C jnz gets
+F8D1 0C      inr c
+F8D2 2B      dcx h
+F8D3 C3 F85C jmp gets
+
+F8D6 strcmp
+F8D6 1A      ldax d
+F8D7 FE 00   cpi 0
+F8D9 CA F8E5 jz strcmp2
+F8DC BE      cmp m
+F8DD C2 F8F0 jnz strcmp1
+F8E0 13      inx d
+F8E1 23      inx h
+F8E2 C3 F8D6 jmp strcmp
+
+F8E5 strcmp2
+F8E5 7E      mov a,m
+F8E6 FE 00   cpi 0
+F8E8 CA F8F3 jz strcmpend
+F8EB FE 20   cpi '
+F8ED CA F8F3 jz strcmpend
+
+F8F0 strcmp1
+F8F0 3E 01   mvi a 1
+F8F2 C9      ret
+
+F8F3 strcmpend
+F8F3 3E 00   mvi a 0
+F8F5 C9      ret
+
+F8F6 lfsr
+F8F6 3A F1C8 lda SEED
+F8F9 47      mov b,a
+F8FA 0F      rrc
+F8FB E6 7F   ani 7fh
+F8FD 32 F1C8 sta SEED
+F900 78      mov a,b
+F901 E6 01   ani 01h
+F903 C8      rz
+F904 3A F1C8 lda SEED
+F907 EE B0   xri b0h
+F909 32 F1C8 sta SEED
+F90C C9      ret
+
+F90D showbytehex
+F90D C5      push b
+F90E 47      mov b,a
+F90F E6 F0   ani f0h
+F911 0F      rrc
+F912 0F      rrc
+F913 0F      rrc
+F914 0F      rrc
+F915 C6 30   adi 30h
+F917 FE 3A   cpi 3ah
+F919 DA F91E jc sb1
+F91C C6 07   adi 07h
+
+F91E sb1
+F91E CD F839 call putc
+F921 78      mov a,b
+F922 E6 0F   ani 0fh
+F924 C6 30   adi 30h
+F926 FE 3A   cpi 3ah
+F928 DA F92D jc sb2
+F92B C6 07   adi 07h
+
+F92D sb2
+F92D CD F839 call putc
+F930 C1      pop b
+F931 C9      ret
+
+F932 clear_fcb
+F932 0E 34   mvi c 52
+F934 3E 00   mvi a 0
+F936 E5      push h
+F937 21 005C lxi h FCB
+
+F93A cf1
+F93A 77      mov m,a
+F93B 23      inx h
+F93C 0D      dcr c
+F93D C2 F93A jnz cf1
+F940 E1      pop h
+F941 C9      ret
+
+F942 get_filename
+F942 21 FE01 lxi h buffer
+
+F945 get_fname
+F945 11 005D lxi d FILENAME
+F948 0E 09   mvi c 9
+
+F94A gf1
+F94A 7E      mov a,m
+F94B FE 2E   cpi '.'
+F94D CA F95F jz gf2
+F950 FE 00   cpi NULL
+F952 CA F983 jz gf6
+F955 12      stax d
+F956 23      inx h
+F957 13      inx d
+F958 0D      dcr c
+F959 CA F992 jz gf_error
+F95C C3 F94A jmp gf1
+
+F95F gf2
+F95F 23      inx h
+F960 11 0065 lxi d FILETYPE
+F963 0E 04   mvi c 4
+F965 7E      mov a,m
+F966 FE 00   cpi NULL
+F968 CA F983 jz gf6
+
+F96B gf4
+F96B 7E      mov a,m
+F96C FE 00   cpi NULL
+F96E CA F980 jz gf5
+F971 FE 20   cpi '
+F973 CA F980 jz gf5
+F976 12      stax d
+F977 23      inx h
+F978 13      inx d
+F979 0D      dcr c
+F97A CA F992 jz gf_error
+F97D C3 F96B jmp gf4
+
+F980 gf5
+F980 3E 00   mvi a 0
+F982 C9      ret
+
+F983 gf6
+F983 21 0065 lxi h FILETYPE
+F986 3E 63   mvi a 'c'
+F988 77      mov m,a
+F989 23      inx h
+F98A 3E 6F   mvi a 'o'
+F98C 77      mov m,a
+F98D 23      inx h
+F98E 3E 6D   mvi a 'm'
+F990 77      mov m,a
+F991 C9      ret
+
+F992 gf_error
+F992 21 F99B lxi h GF_MSG
+F995 CD F83C call puts
+F998 3E 01   mvi a 1
+F99A C9      ret
+
+F99B GF_MSG
+F99B GF_MSG	DB	CR,LF,"Bad Filename",CR,LF,NULL
+
+F9AC get_filename2
+F9AC 21 FE01 lxi h buffer
+
+F9AF get_filename1
+F9AF CD F932 call clear_fcb
+
+F9B2 gfname1
+F9B2 7E      mov a,m
+F9B3 FE 00   cpi NULL
+F9B5 CA FA2A jz gfname_error
+F9B8 FE 20   cpi '
+F9BA CA F9C1 jz gfname2
+F9BD 23      inx h
+F9BE C3 F9B2 jmp gfname1
+
+F9C1 gfname2
+F9C1 7E      mov a,m
+F9C2 FE 00   cpi NULL
+F9C4 CA FA2A jz gfname_error
+F9C7 FE 20   cpi '
+F9C9 C2 F9D0 jnz gfname3
+F9CC 23      inx h
+F9CD C3 F9C1 jmp gfname2
+
+F9D0 gfname3
+F9D0 11 005D lxi d FILENAME
+
+F9D3 gfname4
+F9D3 7E      mov a,m
+F9D4 FE 2E   cpi '.'
+F9D6 CA F9E4 jz gfname5
+F9D9 FE 00   cpi NULL
+F9DB CA FA1B jz gfname11
+F9DE 12      stax d
+F9DF 23      inx h
+F9E0 13      inx d
+F9E1 C3 F9D3 jmp gfname4
+
+F9E4 gfname5
+F9E4 23      inx h
+F9E5 11 0065 lxi d FILETYPE
+
+F9E8 gfname6
+F9E8 7E      mov a,m
+F9E9 FE 00   cpi NULL
+F9EB C8      rz
+F9EC FE 20   cpi '
+F9EE CA F9F7 jz gfname7
+F9F1 12      stax d
+F9F2 23      inx h
+F9F3 13      inx d
+F9F4 C3 F9E8 jmp gfname6
+
+F9F7 gfname7
+F9F7 11 0085 lxi d FILENAME2
+F9FA 23      inx h
+F9FB 7E      mov a,m
+F9FC FE 20   cpi '
+F9FE CA F9F7 jz gfname7
+
+FA01 gfname8
+FA01 7E      mov a,m
+FA02 FE 2E   cpi '.'
+FA04 CA FA0D jz gfname9
+FA07 12      stax d
+FA08 23      inx h
+FA09 13      inx d
+FA0A C3 FA01 jmp gfname8
+
+FA0D gfname9
+FA0D 23      inx h
+FA0E 11 008D lxi d FILETYPE2
+
+FA11 gfname10
+FA11 7E      mov a,m
+FA12 FE 00   cpi NULL
+FA14 C8      rz
+FA15 12      stax d
+FA16 23      inx h
+FA17 13      inx d
+FA18 C3 FA11 jmp gfname10
+
+FA1B gfname11
+FA1B 11 0065 lxi d FILETYPE
+FA1E 3E 63   mvi a 'c'
+FA20 12      stax d
+FA21 13      inx d
+FA22 3E 6F   mvi a 'o'
+FA24 12      stax d
+FA25 13      inx d
+FA26 3E 6D   mvi a 'm'
+FA28 12      stax d
+FA29 C9      ret
+
+FA2A gfname_error
+FA2A 21 FA31 lxi h gfname_msg
+FA2D CD F83C call puts
+FA30 C9      ret
+
+FA31 gfname_msg
+FA31 gfname_msg	DB "Bad Filename Format",CR,LF
+
+FA46 load_diskfile
+FA46 3E 00   mvi a 0
+FA48 32 0084 sta FCBSTATUS
+FA4B DB FE   in 254
+FA4D C9      ret
+
+FA4E BDOS
+FA4E 79      mov a,c
+FA4F FE 00   cpi 0
+FA51 CA F052 jz WBOOT
+FA54 FE 01   cpi 1
+FA56 CA FB08 jz CONIN
+FA59 FE 02   cpi 2
+FA5B CA FB09 jz CONOUT
+FA5E FE 03   cpi 3
+FA60 CA FB0A jz READER
+FA63 FE 04   cpi 4
+FA65 CA FB0B jz PUNCH
+FA68 FE 05   cpi 5
+FA6A CA FB0C jz LIST
+FA6D FE 06   cpi 6
+FA6F CA FB0D jz DIRECT_CON_IO
+FA72 FE 07   cpi 7
+FA74 CA FB0E jz GET_IO_BYTE
+FA77 FE 08   cpi 8
+FA79 CA FB0F jz SET_IO_BYTE
+FA7C FE 09   cpi 9
+FA7E CA FB10 jz PRINT_STRING
+FA81 FE 0A   cpi 10
+FA83 CA FB11 jz READ_CON_BUFFER
+FA86 FE 0B   cpi 11
+FA88 CA FB12 jz GET_CON_STATUS
+FA8B FE 0C   cpi 12
+FA8D CA FB13 jz RETURN_VERSION
+FA90 FE 0D   cpi 13
+FA92 CA FB14 jz RESET_DISK
+FA95 FE 0E   cpi 14
+FA97 CA FB15 jz SELECT_DISK
+FA9A FE 0F   cpi 15
+FA9C CA FB16 jz OPEN_FILE
+FA9F FE 10   cpi 16
+FAA1 CA FB17 jz CLOSE_FILE
+FAA4 FE 11   cpi 17
+FAA6 CA FB18 jz SEARCH_FIRST
+FAA9 FE 12   cpi 18
+FAAB CA FB19 jz SEARCH_NEXT
+FAAE FE 13   cpi 19
+FAB0 CA FB1A jz DELETE_FILE
+FAB3 FE 14   cpi 20
+FAB5 CA FB1B jz READ_SEQUENTIAL
+FAB8 FE 15   cpi 21
+FABA CA FB1C jz WRITE_SEQUENTIAL
+FABD FE 16   cpi 22
+FABF CA FB1D jz MAKE_FILE
+FAC2 FE 17   cpi 23
+FAC4 CA FB1E jz RENAME_FILE
+FAC7 FE 18   cpi 24
+FAC9 CA FB1F jz GET_LOGIN_VECTOR
+FACC FE 19   cpi 25
+FACE CA FB20 jz GET_CURR_DISK
+FAD1 FE 1A   cpi 26
+FAD3 CA FB21 jz SET_DMA_ADDRESS
+FAD6 FE 1B   cpi 27
+FAD8 CA FB22 jz GET_ALLOC_ADDR
+FADB FE 1C   cpi 28
+FADD CA FB23 jz WRITE_PROTECT
+FAE0 FE 1D   cpi 29
+FAE2 CA FB24 jz GET_RO_VECTOR
+FAE5 FE 1E   cpi 30
+FAE7 CA FB25 jz SET_FILE_ATTR
+FAEA FE 1F   cpi 31
+FAEC CA FB26 jz GET_DPB_ADDR
+FAEF FE 20   cpi 32
+FAF1 CA FB27 jz GET_SET_USER
+FAF4 FE 21   cpi 33
+FAF6 CA FB28 jz READ_RANDOM
+FAF9 FE 22   cpi 34
+FAFB CA FB29 jz WRITE_RANDOM
+FAFE FE 23   cpi 35
+FB00 CA FB2A jz COMPUTE_FILE_SZ
+FB03 FE 24   cpi 36
+FB05 CA FB2B jz SET_RAND_RECORD
+
+FB08 CONIN
+FB08 C9      ret
+
+FB09 CONOUT
+FB09 C9      ret
+
+FB0A READER
+FB0A C9      ret
+
+FB0B PUNCH
+FB0B C9      ret
+
+FB0C LIST
+FB0C C9      ret
+
+FB0D DIRECT_CON_IO
+FB0D C9      ret
+
+FB0E GET_IO_BYTE
+FB0E C9      ret
+
+FB0F SET_IO_BYTE
+FB0F C9      ret
+
+FB10 PRINT_STRING
+FB10 C9      ret
+
+FB11 READ_CON_BUFFER
+FB11 C9      ret
+
+FB12 GET_CON_STATUS
+FB12 C9      ret
+
+FB13 RETURN_VERSION
+FB13 C9      ret
+
+FB14 RESET_DISK
+FB14 C9      ret
+
+FB15 SELECT_DISK
+FB15 C9      ret
+
+FB16 OPEN_FILE
+FB16 C9      ret
+
+FB17 CLOSE_FILE
+FB17 C9      ret
+
+FB18 SEARCH_FIRST
+FB18 C9      ret
+
+FB19 SEARCH_NEXT
+FB19 C9      ret
+
+FB1A DELETE_FILE
+FB1A C9      ret
+
+FB1B READ_SEQUENTIAL
+FB1B C9      ret
+
+FB1C WRITE_SEQUENTIAL
+FB1C C9      ret
+
+FB1D MAKE_FILE
+FB1D C9      ret
+
+FB1E RENAME_FILE
+FB1E C9      ret
+
+FB1F GET_LOGIN_VECTOR
+FB1F C9      ret
+
+FB20 GET_CURR_DISK
+FB20 C9      ret
+
+FB21 SET_DMA_ADDRESS
+FB21 C9      ret
+
+FB22 GET_ALLOC_ADDR
+FB22 C9      ret
+
+FB23 WRITE_PROTECT
+FB23 C9      ret
+
+FB24 GET_RO_VECTOR
+FB24 C9      ret
+
+FB25 SET_FILE_ATTR
+FB25 C9      ret
+
+FB26 GET_DPB_ADDR
+FB26 C9      ret
+
+FB27 GET_SET_USER
+FB27 C9      ret
+
+FB28 READ_RANDOM
+FB28 C9      ret
+
+FB29 WRITE_RANDOM
+FB29 C9      ret
+
+FB2A COMPUTE_FILE_SZ
+FB2A C9      ret
+
+FB2B SET_RAND_RECORD
+FB2B C9      ret
+
+Labels:
+          conout   0x0000   0(d)
+           conin   0x0000   0(d)
+              CR   0x000D   13(d)
+              LF   0x000A   10(d)
+            NULL   0x0000   0(d)
+         LOGSTAT   0xFFFF   65535(d)
+        WARMBOOT   0xFFFE   65534(d)
+         LOGNAME   0xFEA3   65187(d)
+         TIMEBUF   0xFE52   65106(d)
+          buffer   0xFE01   65025(d)
+           STACK   0xFE00   65024(d)
+         OSSTART   0xF000   61440(d)
+             TPA   0x0100   256(d)
+          TPAEND   0xEFFF   61439(d)
+            BOOT   0x0000   0(d)
+          IOBYTE   0x0003   3(d)
+       STARTSEED   0x005A   90(d)
+             FCB   0x005C   92(d)
+    FCBDRIVECODE   0x005C   92(d)
+        FILENAME   0x005D   93(d)
+        FILETYPE   0x0065   101(d)
+       FCBEXTENT   0x0068   104(d)
+           FCBS1   0x0069   105(d)
+           FCBS2   0x006A   106(d)
+           FCBRC   0x006B   107(d)
+           FCBDN   0x006C   108(d)
+           FCBCR   0x007C   124(d)
+           FCBR0   0x007D   125(d)
+           FCBR1   0x007E   126(d)
+           FCBR2   0x007F   127(d)
+      FCBSTARTHI   0x0080   128(d)
+      FCBSTARTLO   0x0081   129(d)
+        FCBENDHI   0x0082   130(d)
+        FCBENDLO   0x0083   131(d)
+       FCBSTATUS   0x0084   132(d)
+       FILENAME2   0x0085   133(d)
+       FILETYPE2   0x008D   141(d)
+     bootmessage   0xF00B   61451(d)
+     helpmessage   0xF01F   61471(d)
+          PROMPT   0xF038   61496(d)
+        COLDBOOT   0xF03E   61502(d)
+           WBOOT   0xF052   61522(d)
+           loop0   0xF052   61522(d)
+             CCP   0xF064   61540(d)
+            CCP1   0xF0A3   61603(d)
+            err1   0xF191   61841(d)
+       error_msg   0xF1AD   61869(d)
+            SEED   0xF1C8   61896(d)
+       login_cmd   0xF1C9   61897(d)
+      logout_cmd   0xF1CF   61903(d)
+         ver_cmd   0xF1D6   61910(d)
+         run_cmd   0xF1DA   61914(d)
+         dir_cmd   0xF1DE   61918(d)
+         new_cmd   0xF1E2   61922(d)
+         cls_cmd   0xF1E6   61926(d)
+        help_cmd   0xF1EC   61932(d)
+        type_cmd   0xF1F1   61937(d)
+         del_cmd   0xF1F6   61942(d)
+         era_cmd   0xF1FA   61946(d)
+         ren_cmd   0xF1FE   61950(d)
+      create_cmd   0xF202   61954(d)
+        date_cmd   0xF209   61961(d)
+        copy_cmd   0xF20E   61966(d)
+        stat_cmd   0xF213   61971(d)
+     logout_user   0xF218   61976(d)
+      login_user   0xF226   61990(d)
+          login0   0xF22D   61997(d)
+          login1   0xF24F   62031(d)
+          login2   0xF25B   62043(d)
+          login3   0xF274   62068(d)
+          login4   0xF280   62080(d)
+          login5   0xF293   62099(d)
+         LOGMSG0   0xF29C   62108(d)
+         LOGMSG1   0xF2AB   62123(d)
+         LOGMSG2   0xF2B2   62130(d)
+         LOGMSG3   0xF2BF   62143(d)
+         LOGMSG4   0xF2CC   62156(d)
+         LOGFAIL   0xF2D9   62169(d)
+    show_daytime   0xF2F0   62192(d)
+          s_day0   0xF2F7   62199(d)
+          s_day1   0xF304   62212(d)
+       stat_file   0xF311   62225(d)
+    stat_file_OK   0xF32D   62253(d)
+        STATFAIL   0xF336   62262(d)
+          STATOK   0xF343   62275(d)
+         STATMSG   0xF358   62296(d)
+       copy_file   0xF397   62359(d)
+    copy_file_OK   0xF3AD   62381(d)
+        COPYFAIL   0xF3B6   62390(d)
+          COPYOK   0xF3C9   62409(d)
+     create_file   0xF3D7   62423(d)
+            crf1   0xF3DD   62429(d)
+            crf2   0xF3E4   62436(d)
+            crf3   0xF406   62470(d)
+     create_msg1   0xF40F   62479(d)
+     create_msg2   0xF41E   62494(d)
+     delete_file   0xF435   62517(d)
+             df1   0xF441   62529(d)
+             df2   0xF448   62536(d)
+             df3   0xF46A   62570(d)
+     delete_msg1   0xF473   62579(d)
+     delete_msg2   0xF482   62594(d)
+     delete_msg3   0xF49C   62620(d)
+    show_version   0xF4AC   62636(d)
+        show_dir   0xF4B5   62645(d)
+         SHOWDIR   0xF4C4   62660(d)
+             new   0xF4DA   62682(d)
+       clear_tpa   0xF4E0   62688(d)
+          c_tpa1   0xF4E8   62696(d)
+          clrscr   0xF4F3   62707(d)
+       show_help   0xF4F9   62713(d)
+        HELPLIST   0xF502   62722(d)
+       type_file   0xF749   63305(d)
+             tf1   0xF74F   63311(d)
+             tf2   0xF756   63318(d)
+            tf30   0xF774   63348(d)
+             tf3   0xF778   63352(d)
+            tf3b   0xF78D   63373(d)
+            tf3a   0xF79F   63391(d)
+             tf4   0xF7A5   63397(d)
+            tf4a   0xF7AD   63405(d)
+             tf5   0xF7C4   63428(d)
+   next_page_msg   0xF7CD   63437(d)
+            crlf   0xF7EE   63470(d)
+    clear_screen   0xF7FB   63483(d)
+      clear_line   0xF81F   63519(d)
+             cl1   0xF828   63528(d)
+            putc   0xF839   63545(d)
+            puts   0xF83C   63548(d)
+          memset   0xF84A   63562(d)
+            getc   0xF854   63572(d)
+            gets   0xF85C   63580(d)
+           gets1   0xF881   63617(d)
+           gets2   0xF8A8   63656(d)
+       gets_save   0xF8C2   63682(d)
+          strcmp   0xF8D6   63702(d)
+         strcmp2   0xF8E5   63717(d)
+         strcmp1   0xF8F0   63728(d)
+       strcmpend   0xF8F3   63731(d)
+            lfsr   0xF8F6   63734(d)
+     showbytehex   0xF90D   63757(d)
+             sb1   0xF91E   63774(d)
+             sb2   0xF92D   63789(d)
+       clear_fcb   0xF932   63794(d)
+             cf1   0xF93A   63802(d)
+    get_filename   0xF942   63810(d)
+       get_fname   0xF945   63813(d)
+             gf1   0xF94A   63818(d)
+             gf2   0xF95F   63839(d)
+             gf4   0xF96B   63851(d)
+             gf5   0xF980   63872(d)
+             gf6   0xF983   63875(d)
+        gf_error   0xF992   63890(d)
+          GF_MSG   0xF99B   63899(d)
+   get_filename2   0xF9AC   63916(d)
+   get_filename1   0xF9AF   63919(d)
+         gfname1   0xF9B2   63922(d)
+         gfname2   0xF9C1   63937(d)
+         gfname3   0xF9D0   63952(d)
+         gfname4   0xF9D3   63955(d)
+         gfname5   0xF9E4   63972(d)
+         gfname6   0xF9E8   63976(d)
+         gfname7   0xF9F7   63991(d)
+         gfname8   0xFA01   64001(d)
+         gfname9   0xFA0D   64013(d)
+        gfname10   0xFA11   64017(d)
+        gfname11   0xFA1B   64027(d)
+    gfname_error   0xFA2A   64042(d)
+      gfname_msg   0xFA31   64049(d)
+   load_diskfile   0xFA46   64070(d)
+            BDOS   0xFA4E   64078(d)
+           CONIN   0xFB08   64264(d)
+          CONOUT   0xFB09   64265(d)
+          READER   0xFB0A   64266(d)
+           PUNCH   0xFB0B   64267(d)
+            LIST   0xFB0C   64268(d)
+   DIRECT_CON_IO   0xFB0D   64269(d)
+     GET_IO_BYTE   0xFB0E   64270(d)
+     SET_IO_BYTE   0xFB0F   64271(d)
+    PRINT_STRING   0xFB10   64272(d)
+ READ_CON_BUFFER   0xFB11   64273(d)
+  GET_CON_STATUS   0xFB12   64274(d)
+  RETURN_VERSION   0xFB13   64275(d)
+      RESET_DISK   0xFB14   64276(d)
+     SELECT_DISK   0xFB15   64277(d)
+       OPEN_FILE   0xFB16   64278(d)
+      CLOSE_FILE   0xFB17   64279(d)
+    SEARCH_FIRST   0xFB18   64280(d)
+     SEARCH_NEXT   0xFB19   64281(d)
+     DELETE_FILE   0xFB1A   64282(d)
+ READ_SEQUENTIAL   0xFB1B   64283(d)
+WRITE_SEQUENTIAL   0xFB1C   64284(d)
+       MAKE_FILE   0xFB1D   64285(d)
+     RENAME_FILE   0xFB1E   64286(d)
+GET_LOGIN_VECTOR   0xFB1F   64287(d)
+   GET_CURR_DISK   0xFB20   64288(d)
+ SET_DMA_ADDRESS   0xFB21   64289(d)
+  GET_ALLOC_ADDR   0xFB22   64290(d)
+   WRITE_PROTECT   0xFB23   64291(d)
+   GET_RO_VECTOR   0xFB24   64292(d)
+   SET_FILE_ATTR   0xFB25   64293(d)
+    GET_DPB_ADDR   0xFB26   64294(d)
+    GET_SET_USER   0xFB27   64295(d)
+     READ_RANDOM   0xFB28   64296(d)
+    WRITE_RANDOM   0xFB29   64297(d)
+ COMPUTE_FILE_SZ   0xFB2A   64298(d)
+ SET_RAND_RECORD   0xFB2B   64299(d)
+
+Last address 64299(d)    0xFB2B
+

@@ -1,0 +1,89 @@
+*** Starting PASS 1
+*** Starting PASS 2
+
+0199 conout
+
+0199 conin
+
+0199 CR
+
+0199 LF
+
+0199 NULL
+org 0x0100
+0100 21 013B lxi h MSG1
+0103 CD 018B call puts
+0106 21 0000 lxi h 0000h
+0109 3E 41   mvi a 'A'
+
+010B loop1
+010B CD 0188 call putc
+010E D3 20   out 32
+0110 23      inx h
+0111 3C      inr a
+0112 FE 5B   cpi 5bh
+0114 C2 010B jnz loop1
+0117 CD 017D call crlf
+011A 21 0156 lxi h MSG2
+011D CD 018B call puts
+0120 21 0000 lxi h 0000h
+0123 0E 1A   mvi c 26
+
+0125 loop2
+0125 DB 20   in 32
+0127 CD 0188 call putc
+012A 23      inx h
+012B 0D      dcr c
+012C C2 0125 jnz loop2
+012F CD 017D call crlf
+0132 21 0171 lxi h MSG3
+0135 CD 018B call puts
+0138 C3 0000 jmp 0
+
+013B MSG1
+013B MSG1	DB "Writing a block to psram",CR,LF,NULL
+
+0156 MSG2
+0156 MSG2	DB "Reading a block of psram",CR,LF,NULL
+
+0171 MSG3
+0171 MSG3	DB "Finished.",CR,LF,NULL	
+
+017D crlf
+017D 3E 0D   mvi a CR
+017F CD 0188 call putc
+0182 3E 0A   mvi a LF
+0184 CD 0188 call putc
+0187 C9      ret
+
+0188 putc
+0188 D3 00   out conout
+018A C9      ret
+
+018B puts
+018B 7E      mov a,m
+018C FE 00   cpi NULL
+018E C8      rz
+018F FE 24   cpi '$'
+0191 C8      rz
+0192 CD 0188 call putc
+0195 23      inx h
+0196 C3 018B jmp puts
+
+Labels:
+          conout   0x0000   0(d)
+           conin   0x0000   0(d)
+              CR   0x000D   13(d)
+              LF   0x000A   10(d)
+            NULL   0x0000   0(d)
+           loop1   0x010B   267(d)
+           loop2   0x0125   293(d)
+            MSG1   0x013B   315(d)
+            MSG2   0x0156   342(d)
+            MSG3   0x0171   369(d)
+            crlf   0x017D   381(d)
+            putc   0x0188   392(d)
+            puts   0x018B   395(d)
+
+Last address 408(d)    0x0198
+
