@@ -37,9 +37,12 @@ and other hardware.
 
 You will need the no-OS-FatFS-SD-SDIO-SPI-RPi-Pico library from https://github.com/carlk3/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico/tree/main
 
-I included my 8080 assembler program (written in C) but you can use your own. Included in
-the asmcode subdirectory is an operating system for the computer (boot.hex, boot.asm),
-the 8080 assembler, and various diagnostic and test routines.
+I included my 8080 assembler program (written in C) but you can use your own. This is in 
+the asm sub directory. It compiles with make on a linux system. I haven't tried, but
+it should work on a windows or mac os system as well.
+
+Included in the asmcode sub directory is an operating system for the computer (boot.hex, boot.asm)
+and various diagnostic and test routines.
 
 Defines in the emulator_1.c code set system parameters. The source code is currently 
 one very long single file, but I'll likely split it into smaller routines later.
