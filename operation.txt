@@ -1,6 +1,6 @@
 Starting Up
 
-At power on the Pico expect a USB cable connected to a computer
+At power on the Pico expects a USB cable connected to a computer
 running a serial terminal program (Minicom, etc).
 
 From now on, the term 'computer' will mean the Pi Pico based
@@ -11,7 +11,8 @@ messages. When it is ready, it will prompt for year, month, day,
 hour, minute. Enter a valid time.
 
 More diagnostic messages will be displayed. When Running in multi
-user mode you will see a prompt from the 8080 codeed operating system.
+user mode you will see a prompt from the 8080 based operating system
+in the file boot.hex
 
 Below is a screen shot of this process:
 
@@ -69,9 +70,9 @@ OS1>
 ---------- End Screen Capture ---------------
 
 Typing a command or the <enter> key will start a login
-process. Type 'login' (no quotes). At the User: prompt
-type 'fred' (no quotes) and press <enter>. At the Password:
-prompt type 'derf' (no quotes).
+process. Type 'login' (no quotes). 
+At the User: prompt type 'fred' (no quotes) and press <enter>. 
+At the Password: prompt type 'derf' (no quotes).
 
 Username/password is defined in emulator_1.c in the input port 253
 routine (about line 2800). This will change later. 
@@ -106,7 +107,7 @@ OS1>
  ---------- End Screen Capture ---------------
 
 Any command entered that is not a built in command is assumed to
-be a compiled program resiging on the SD card. The program extension
+be a compiled program residing on the SD card. The program extension
 is assumed to be .com 
 
 If you type in 'diag' <enter> the OS will add the .com extension, load
@@ -124,5 +125,20 @@ etc from the SD card, all other operations stop. Typically this is so fast
 that other users will not notice a slowdown. Also, the file system is mounted
 and unmounted for all file operations. At the end of a file process 
 all pointers and files are closed so other users cannot damage files in-use.
+
+Pressing the RESET button will stop the processor, load adress 0x0000 into
+the program counter (8080 PC) for all users, and restart the boot.hex
+program. This applies to all users.
+
+Pressing the ABORT button stop the processor and starts a diagnostic
+program from the computers main operating system. Type 'help' for
+a command summary. Pressing '0' <enter> (no quotes) resumes operation
+for all users as if nothing happened. While in abort mode, no processor 
+operation is happening. 
+
+The diagnostic console from the abort button only works from the usb 
+serial port. Any diagnostic messages the computer displays appear on
+the usb serial port only.
+
 
 
