@@ -140,5 +140,21 @@ The diagnostic console from the abort button only works from the usb
 serial port. Any diagnostic messages the computer displays appear on
 the usb serial port only.
 
+--- Booting ---
+
+When starting up, the computer is hardcoded to load the file boot.hex from
+the SD card. This is the .hex code created by compiling the file boot.asm
+
+Any changes to the boot operating system code will need a recompile and copy
+of boot.hex to the SD card and the computer system rebooted (power down/up)
+to take effect.
+
+Currently any .com program files will need to be on the SD card for the OS 
+to see them. This requires powering down the computer, removing the
+SD card to the development computer, copying files, re-installing the SD card
+and powering the system back up. 
+
+This is a long process. Future updates will speed this up. 
+
 
 
