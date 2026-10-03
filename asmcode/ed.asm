@@ -265,7 +265,134 @@ delete		; delete a single line
 ; HL points to 'd'. skip ahead and get the line number to delete
 ; UD2B converts string pointed to by DE to number in HL
 
+	inx h		; skip past 'd'
+	cpi	' '
+	jz	delete	; skip spaces
+	cpi	09h
+	jz	delete	; skip TABS
+	cpi	NULL
+	jz	delete_error	; badly formatted
+	
+	; test for decimal number 0-9
+	cpi	10
+	cmc			; if A < 10 CY is set
+	jnc	delete_error
+	
+	;; HL points to start of a number string
+	xchg		; swap HL w/DE
+	call	UD2B	; HL now holds binary line number to delete
+	shld	ACTIVE_NUM	
+	
+	; search for matching line number in buffer
+	lxi h	1		; starting line number
+	shld	LINENUMBER
+	
+	lxi h	BUFFERSTART	; point to 1st line of text
+	shld	START_ADDRESS
+	
+delete1
+	mov a,m
+	cpi	LF
+	jz	delete2
+	cpi	NULL
+	jz	delete_error
+	inx h
+	jmp	delete1
+	
+delete2		; end of current line
+	shld	END_ADDRESS
+	; line #, start of line and end of line set
+	; get the size (length) of the line
+	lhld	END_ADDRESS
+	xchg
+	lhld	START_ADDRESS
+	;
+	mov a,e
+	sub l
+	mov l,a
+	
+	mov a,d
+	sbb h		; subtract high byte w/borrow
+	mov h,a
+	; buffer size in HL
+	shld	LINESIZE
 
+	; test if LINE_NUMBER = ACTIVE_NUM
+	lhld	ACTIVE_NUM
+	xchg	; save in DE
+	lhld	LINENUMBER
+	mov	a,h
+	cmp d
+	jnz		delete_no_match
+	mov a,l
+	cmp	e
+	jnz		delete_no_match
+	jmp		delete_match
+
+
+delete_no_match		; line numbers don't match
+	lhld	LINENUMBER
+	inx h				; increment linenumber
+	shld 	LINENUMBER	
+	lhld	END_ADDRESS
+	inx h		; point to start of next line
+	shld	START_ADDRESS
+	jmp		delete1		; test next line
+	
+delete_match
+	; line numbers match - we have line to delete
+	; get size of move (CURBUFFERPOS - START_ADDRESS)
+	lhld	CURBUFFERPOS
+	xchg	; subtract START_ADDRESS from CURBUFFERPOS to get move size  
+	lhld	START_ADDRESS
+	; subtract
+	mov a,e
+	sub l
+	mov l,a
+	mov a,d
+	sbb h		; subtract high byte w/borrow
+	mov h,a
+	
+	mov	b,h
+	mov c,l	; BC holds line size
+	
+	; get move to position in DE
+	lhld	START_ADDRESS
+	xchg
+	
+	; get position to move from
+	lhld	END_ADDRESS
+	inx h	; HL holds start of next line
+	mvi a 0	; move downward
+	call	move_down
+	; line deleted
+	
+	; re-adjust CURBUFFERPOS downward by LINESIZE
+	lhld	CURBUFFERPOS
+	xchg		; put in DE
+	lhld	LINESIZE
+	; subtract
+	mov a,e
+	sub l
+	mov l,a
+	mov a,d
+	sbb h		; subtract high byte w/borrow
+	mov h,a
+	; new address in HL
+	dcx h		; -1 need to point before NULL
+	shld CURBUFFERPOS
+
+	; delete done	
+	call	crlf
+	jmp		loop
+	
+
+delete_error	; badly formatted line number
+	lxi	h	DELETEMSG1
+	call	puts
+	jmp		loop
+	
+DELETEMSG1 DB "Bad Line or Line Number",CR,LF,NULL
 	
 ; ----------------------------------------
 list		; display buffer
@@ -519,10 +646,19 @@ move_block
 	cpi	0
 	jz		move_down
 	
-move_up
+move_up		; a=1
+	mov a,m
+	stax d
+	dcx d
+	dcx h
+	dcx b	; dec counter
+	mov	a,b
+	ora c
+	jnz		move_up
+	ret
 	
-	
-move_down		; counter = last_memory_used - start_of_TO_address
+	; counter = last_memory_used - start_of_TO_address
+move_down		; a=0
 	mov a,m
 	stax d
 	inx	d
@@ -1021,6 +1157,18 @@ CURBUFFERPOS DS 2
 
 ; holds 4 digit hex line number (print buffer)
 LINENUMBER DS 2
+
+; holds line number for testing (delete, insert, replace)
+ACTIVE_NUM DS 2
+
+; holds starting address in delete, insert, replace, print
+START_ADDRESS DS 2
+
+; holds ending address in delete, insert, replace, print
+END_ADDRESS DS 2
+
+; holds the length (size) of a line
+LINESIZE DS 2
 
 ; 80 char line buffer
 LINE DS 80
