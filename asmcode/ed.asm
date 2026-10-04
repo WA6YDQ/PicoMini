@@ -1,4 +1,7 @@
 ; ed.asm - simple text editor
+; (C) 2026 Kurt Theis
+; written for the 8080
+
 ; LINE - 80 char line buffer
 
 ; commands:
@@ -7,8 +10,7 @@
 ; q - quit ed
 ; s - save buffer to disk
 ; l - load a disk file to buffer
-; n - new (clear buffer)
-; x - exit ed with test for save
+; c - clear buffer
 ; h - display command list
 ; d - delete a line
 ; r - replace a line
@@ -77,6 +79,9 @@ loop
 	cpi	'a'				; append to buffer
 	jz	append
 	
+	cpi 'b'				; show buffer status
+	jz	buffer_stats	
+	
 	cpi	'p'				; print (list) buffer
 	jz	list
 	
@@ -132,13 +137,13 @@ help
 	
 HELPMSG	DB "commands:",CR,LF
 		DB " a - append text to buffer",CR,LF
+		DB " b - show buffer status",CR,LF
 		DB " p - print buffer",CR,LF
 		DB " q - quit ed",CR,LF
 		DB " s - save buffer to disk",CR,LF
 		DB " l - load a disk file to buffer",CR,LF
 		DB " c - clear buffer",CR,LF
 		DB " h - display this list",CR,LF
-		DB " *x - exit ed with test for save",CR,LF
 		DB " d - delete a line",CR,LF
 		DB " *r - replace a line",CR,LF
 		DB " *i - insert a line",CR,LF,NULL
@@ -157,6 +162,39 @@ test1
 	cpi		100
 	jnz		test1
 	jmp		loop
+
+
+; ---------- buffer stats -----------
+buffer_stats	; show buffer stats (size, position, etc)
+	
+	; show buffer start address
+	lxi h	BUFSTAT1
+	call	puts
+	lxi h	BUFFERSTART
+	mov a,h
+	call	printhex
+	mov a,l
+	call	printhex
+	
+	call	crlf
+	
+	; show buffer position
+	lxi h	BUFSTAT2
+	call	puts
+	lhld	CURBUFFERPOS
+	mov a,h
+	call	printhex
+	mov a,l
+	call	printhex
+	
+	call	crlf
+	jmp		loop
+
+
+
+
+BUFSTAT1 DB "Buffer Start Address ",NULL
+BUFSTAT2 DB "Current End of Buffer Position ",NULL
 
 
 ; ----------------------------------------------------
@@ -394,17 +432,19 @@ delete_error	; badly formatted line number
 	
 DELETEMSG1 DB "Bad Line or Line Number",CR,LF,NULL
 	
-; ----------------------------------------
+; -------------- list ----------------------
 list		; display buffer
 
 	call	crlf
 	
 	;; show line number
-	lxi h	1		; line number
+	lxi h	0001h		; line number
 	shld	LINENUMBER
-	call	UB2D		; convert binary in HL to decimal string pointed to by DE, null term
-	xchg				;; de -> hl
-	call	puts		; show ln
+
+	mov a,h
+	call	printdecimal
+	mov a,l
+	call	printdecimal
 	mvi a	':'
 	call	putc
 	call	putc		; two :: between line number and text
@@ -423,22 +463,25 @@ list1
 	call	crlf
 	inx h	; skip CR
 	inx h	; skip LF
-	mov a,m
+	mov a,m			; test char after CRLF - end of file
 	cpi	NULL
 	jz	list_end
 	
 	; not null - print line#
 	push h		;; save address
 	lhld	LINENUMBER
-	inx h
+	inx h				; increment line number
 	shld	LINENUMBER
-	call	UB2D
-	xchg	;; de -> hl
-	call	puts
+
+	mov a,h
+	call	printdecimal
+	mov a,l
+	call	printdecimal
+	
+	mvi a	':'			;; set between linenumber and text
+	call	putc
+	call	putc
 	pop	h
-	mvi a	':'
-	call	putc
-	call	putc
 
 list2
 	; now show char
@@ -453,12 +496,32 @@ list_end
 	jmp		loop
 
 
-; ---------------------------------------
+
+; ----------- clear fcb --------------
+clear_fcb
+	mvi c	12
+	lxi h	FILENAME
+	mvi a	NULL
+clear_fcb1
+	mov m,a
+	inx h
+	dcr c
+	jnz		clear_fcb1
+	ret
+
+
+
+; ---------------- save -----------------------
 save		; save buffer to disk
 
 	call	crlf
 	lxi h	SAVEMSG1
 	call	puts
+	
+	; clear the FCB
+	call	clear_fcb
+	mvi a	0
+	sta		FCBSTATUS
 	
 	lxi	h	LINE
 	mvi c	80
@@ -470,33 +533,43 @@ save		; save buffer to disk
 	; save the filename to FCB
 	lxi d	FILENAME
 	lxi h	LINE
+	mvi c	9		; counter
 	
 save1	; save the filename up to '.'
 	mov a,m		; get char from LINE
 	cpi	'.'
 	jz	save2
-	stax d
+	cpi	NULL
+	jz	save_fnfail
+	stax d		; store char in FILENAME
 	inx h
 	inx d
+	dcr c
+	jz	save_fnfail
+	
 	jmp	save1
 	
 save2	; skip '.'
 	inx h		; skip '.'
 	lxi d		FILETYPE
+	mvi c	4
 	
 save3	; save the filetype
-	mov a,m
+	mov a,m		; get char from LINE
 	cpi	NULL
 	jz		save4
-	stax d	
+	stax d		; save in FILETYPE
 	inx h
 	inx d
+	dcr c
+	jz	save_fnfail
 	jmp		save3
 	
 save4	; point DE to start, HL to end and save buffer
 	lxi d	BUFFERSTART
 	lhld	CURBUFFERPOS
 	out 248
+	lxi d  0	; clear for later routines
 	
 	; get status byte
 	lda		FCBSTATUS
@@ -505,6 +578,8 @@ save4	; point DE to start, HL to end and save buffer
 	call	crlf
 	lxi h	SAVEMSGOK
 	call	puts
+	
+	; restore pointers (ni)
 	jmp		loop
 	
 save_fail
@@ -513,21 +588,29 @@ save_fail
 	call	puts
 	jmp		loop
 	
-	
+save_fnfail		; bad filename
+	call	crlf
+	lxi h	SAVEFNFAIL
+	call	puts
+	jmp		loop
 	
 	
 SAVEMSG1	DB	"Filename: ",NULL	
 SAVEMSGOK	DB	"File Saved",CR,LF,NULL
 SAVEMSGFAIL DB  "Save Error",CR,LF,NULL	
+SAVEFNFAIL	DB	"Bad Filename",CR,LF,NULL
 
 
 
-; -----------------------------------
+; -------------- load ---------------------
 load		; load file into buffer
 
 	call	crlf
 	lxi h	LOADMSG1
 	call	puts
+	
+	mvi a	0
+	sta		FCBSTATUS
 	
 	lxi	h	LINE
 	mvi c	80
@@ -601,6 +684,7 @@ showprompt	; display prompt depending on mode in B
 	lda		MODE	; get current mode
 	cpi	0
 	jnz sp1
+	
 	; show cmd prompt
 	lxi h	CMDPROMPT
 	call	puts
@@ -842,8 +926,39 @@ gets_save
 	dcx h
 	jmp		gets
 	
+	
+	
+	
+; ---------------------------------------------------
+	; subroutine printhex - convert binary value in A, print as 2 hex bytes
+printhex
+		push b
+		mov b,a		; save A
+		ani	f0h	; MSB
+		rar
+		rar
+		rar
+		rar
+		adi	30h
+		cpi	3Ah
+		jc	printhex1
+		adi	7
+printhex1
+		call	putc
+		mov a,b		; LSB
+		ani	0fh
+		adi	30h
+		cpi	3Ah
+		jc	printhex2
+		adi	7
+printhex2
+		call	putc
+		pop b
+		ret			
 
-/ ---------------------------------------------------------------------------------
+
+
+; ---------------------------------------------------------------------------------
 ; subroutine divide - divide number in HL by B. Dividend in HL, divisor in B
 divide
 		mvi 	c 0x08		; counter
@@ -1170,12 +1285,17 @@ END_ADDRESS DS 2
 ; holds the length (size) of a line
 LINESIZE DS 2
 
+; temp storage
+TEMPADDR DS 2
+
 ; 80 char line buffer
 LINE DS 80
 
-; text buffer
-	; org	BUFFERSTART
-BUFFERSTART DS 8192
+; seperator between working area and text buffer
+SPBUF DS 100
+
+; text buffer (size actually set by BUFFERSIZE)
+BUFFERSTART DS 1
 	
 
 	
