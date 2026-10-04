@@ -776,7 +776,9 @@ int load_file_to_ram(int usernumber, uint16_t start_address, char *filename) {
 	return 0;	
 }
 
+
 /* display the directory of the sd card drive */
+/* NOTE: There are much better directory listing programs for FatFs formats */
 int show_dir() {
 
 	/* Mount Card */
@@ -831,15 +833,15 @@ void main (void) {
     uint32_t target_addr = 0x001000; // Array target address in the 64Mb scope
 
 	psram_select_bus();
-    printf("Writing test data to address 0x%06X...\n", target_addr);
+    // printf("Writing test data to address 0x%06X...\n", target_addr);
     psram_write(target_addr, test_write, 8);
 
-    printf("Reading back data...\n");
+    // printf("Reading back data...\n");
     psram_read(target_addr, test_read, 8);
     // Verify consistency
     bool success = true;
     for(int i = 0; i < 8; i++) {
-        printf("Byte %d - Written: 0x%02X, Read: 0x%02X\n", i, test_write[i], test_read[i]);
+        // printf("Byte %d - Written: 0x%02X, Read: 0x%02X\n", i, test_write[i], test_read[i]);
         if(test_write[i] != test_read[i]) success = false;
     }
 
@@ -1206,8 +1208,10 @@ void main (void) {
     	gpio_put(FAULTLED,1);
     	gpio_put(HALTLED,1);
     	
-    	// wait for reset button push
-    	while (gpio_get(RESET)==1) continue;
+    	// drop to abort()
+    	abort_routine();
+    	
+
     	// turn on HALT led while reset
     	gpio_put(HALTLED,1);
     	// reset PC's for all users to 0
@@ -2271,6 +2275,8 @@ void output(uint8_t val, uint8_t address) {
 		uint16_t file_start = user_context[active_user].DE;
 		uint16_t file_end = user_context[active_user].HL;
 		
+		printf("Start: %04X   End: %04X \n",file_start, file_end);
+		
 		if (file_end - file_start <= 0) {		// empty block
 			user_ram[active_user][FCBSTATUS] = 1;
 			printf("Error - block to save is 0 bytes\n");
@@ -2294,6 +2300,7 @@ void output(uint8_t val, uint8_t address) {
 			filename[i++] = user_ram[active_user][FILETYPE + c];
 		}
 		
+		printf("Filename: %s\n",filename);
 		
 		// mount SD card, open file for write, save block
 		FATFS fs;
@@ -2305,7 +2312,7 @@ void output(uint8_t val, uint8_t address) {
     	/* Mount Card */
 		fr = f_mount(&fs, "", 1);
 		if (FR_OK != fr) {
-    	    printf("Error mounting card\n");
+    	    printf("Error mounting card - return code %d\n",fr);
     	    user_ram[active_user][FCBSTATUS] = 1;
     	    return ;	
 		}
