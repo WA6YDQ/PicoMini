@@ -1259,6 +1259,14 @@ int decode(uint8_t opcode) {
 	/* Custom instruction set with 0xCB as there prefix code   */
 	/* (CB is unused in the 8080 and 8085, but used in the Z80 */
 	
+	/* BREAKPOINT */
+	if (opcode == 0xcb) {
+		printf("Breakpoint at address %04X\n",user_context[active_user].PC);
+		abort_routine();
+		printf("Exiting abort()\n");
+		user_context[active_user].PC += 1;
+		return 0;
+	}
 	
 	// NOP
 	if (opcode == 0x00) {
