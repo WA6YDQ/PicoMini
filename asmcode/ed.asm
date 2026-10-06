@@ -36,7 +36,7 @@ FCBS2			EQU	FCB+14		; reserved for cp/m for bdos, typically set to 0
 FCBRC			EQU	FCB+15		; record count, 0-128
 FCBSTATUS		EQU	FCB+40		; returned status byte
 
-BUFFERSIZE EQU 2000h	; 8192 bytes
+BUFFERSIZE EQU C000h	; 48K bytes
 
 	org	0100h
 start
@@ -48,6 +48,8 @@ start
 	lxi h	BUFFERSTART	; start by clearing the buffer
 	lxi d	BUFFERSIZE
 	call	clear_block
+	lxi h	CLEARMSG
+	call	puts
 	
 	lxi h	BUFFERSTART	; begin of text entry buffer
 	shld	CURBUFFERPOS	; current position of the buffer
@@ -100,6 +102,9 @@ loop
 	cpi	'd'				; delete a line
 	jz	delete
 	
+	cpi	'i'				; insert a line
+	jz	insert
+	
 	cpi 't'
 	jz 	test
 	
@@ -122,7 +127,7 @@ STARTMSG DB "Editor V1",CR,LF
 		 DB	"Press 'h' for command list",CR,LF,NULL
 		 
 ERRORMSG DB CR,LF,"EH?",NULL
-
+CLEARMSG DB "Buffer Cleared",CR,LF,NULL
 
 ; ----------- COMMANDS --------------
 
@@ -138,29 +143,23 @@ help
 HELPMSG	DB "commands:",CR,LF
 		DB " a - append text to buffer",CR,LF
 		DB " b - show buffer status",CR,LF
+		DB " c - clear buffer",CR,LF
+		DB " d [n] - delete a line",CR,LF
+		DB " *f - append file to buffer end",CR,LF
+		DB " h - display this list",CR,LF
+		DB " i [n] - insert a line",CR,LF
+		DB " l - load a disk file to buffer (clears existing)",CR,LF
 		DB " p - print buffer",CR,LF
 		DB " q - quit ed",CR,LF
+		DB " *r [n] - replace a line",CR,LF
 		DB " s - save buffer to disk",CR,LF
-		DB " l - load a disk file to buffer",CR,LF
-		DB " c - clear buffer",CR,LF
-		DB " h - display this list",CR,LF
-		DB " d - delete a line",CR,LF
-		DB " *r - replace a line",CR,LF
-		DB " *i - insert a line",CR,LF,NULL
+		DB NULL
+		
 
 
 ; --------------------------------------------
 test
 	call	crlf
-	mvi a	0
-test1	
-	push	psw
-	call	printdecimal
-	call	crlf
-	pop		psw
-	inr	a
-	cpi		100
-	jnz		test1
 	jmp		loop
 
 
@@ -200,6 +199,8 @@ BUFSTAT2 DB "Current End of Buffer Position ",NULL
 ; ----------------------------------------------------
 clear_buffer
 	; fill the used buffer with NULL and resetting pointers
+	call	crlf
+	
 	lxi h	BUFFERSTART
 	lxi d	BUFFERSIZE
 	call	clear_block
@@ -207,15 +208,17 @@ clear_buffer
 	lxi h	BUFFERSTART
 	shld	CURBUFFERPOS
 	
-	call	crlf
+	lxi h	CLEARMSG
+	call	puts
+	
 	jmp		loop
 	
 	
-	; lhld	CURBUFFERPOS
-	; xchg	; move to DE
+
 	; lxi h	BUFFERSTART
 	; lxi d	BUFFERSIZE
 	
+	; DE - HL, result in DE (after xchg)
 	;mov a,e		; low byte of BUFFERSIZE to A
 	;sub l		; subtract low byte of BUFFERSTART
 	;mov l,a		; save
@@ -225,13 +228,15 @@ clear_buffer
 	;mov h,a		; save in A
 	;xchg		; difference (counter) in DE
 	
-	;lxi h	BUFFERSTART
+
 
 	
 
 ; -----------------------
-append		; append text to buffer
+append		; append text to buffer. Type ESC to exit
 
+
+	
 	call	crlf
 	mvi a	1
 	sta		MODE
@@ -295,6 +300,230 @@ append_end
 	sta		MODE
 	call	crlf
 	jmp		loop
+	
+APPENDMSG	DB	"Hit ESC to exit",CR,LF,NULL
+	
+	
+	
+; ---------- insert -------------
+insert		; insert a single line into the buffer
+
+; This is overly complicated. format is i # where # is the line number
+; displayed by a print 'p' command.
+; Insert continues until the user press ESC at line start.
+
+; HL points to 'i'. skip ahead and get the line number to insert
+; UD2B converts string pointed to by DE to number in HL
+
+	inx h		; skip past 'i'
+	cpi ' '
+	jz	insert	; skip spaces
+	cpi	09h
+	jz	insert	; skip tabs
+	cpi	NULL
+	jz	insert_error
+	
+	; test for decimal number 0-9 as 1st char
+	cpi	10
+	cmc			; if A < 10, set CY
+	jnc		insert_error
+	
+	; HL points to start of number string
+	xchg				; DE needs to point to start of decimal number
+	call	UD2B		; HL holds line number (in binary) to delete
+	shld	ACTIVE_NUM
+	
+	; search for matching line number in buffer
+	lxi h	1		; Set starting line number
+	shld	LINENUMBER
+	
+	lxi h	BUFFERSTART	; point to 1st line of text
+	shld	START_ADDRESS
+	
+insert1
+	mov a,m
+	cpi	LF
+	jz	insert2
+	cpi	NULL
+	jz	insert_error
+	inx h
+	jmp	insert1
+	
+insert2		; HL holds the end of the current line
+	shld	END_ADDRESS
+	; line #, start of line and end of line set
+	
+
+	; test if LINE_NUMBER = ACTIVE_NUM
+	lhld	ACTIVE_NUM
+	xchg	; save in DE
+	lhld	LINENUMBER
+	mov	a,h
+	cmp d
+	jnz		insert_no_match
+	mov a,l
+	cmp	e
+	jnz		insert_no_match
+	jmp		insert_match
+	
+insert_no_match		; line numbers don't match
+	lhld	LINENUMBER
+	inx h				; increment linenumber
+	shld 	LINENUMBER	
+	
+	lhld	END_ADDRESS
+	inx h		; point to start of next line
+	shld	START_ADDRESS
+	
+	jmp		insert1		; test next line	
+	
+insert_match	
+	; line numbers match - we will insert before this line
+	; blocked by START_ADDRESS and END_ADDRESS
+	; get a line of text from the user
+	lxi h	INSERTMSG2
+	call	puts
+	mvi a	2		; show insert prompt
+	sta	MODE
+	
+insert_match_again
+	; clear, then fill LINE with new text to insert
+	call	crlf
+	call	showprompt
+	
+	lxi h	LINE
+	mvi c	80
+	call	memset		; clear buffer
+	lxi h	LINE
+	mvi c	80
+	call	gets	
+	cpi		ESC			; if user hits ESC we're done inserting
+	jz		ins3
+		
+	; gets returns on seeing <CR> so there is no CRLF at the end
+	; it needs to be added
+	mvi a	CR
+	mov m,a
+	inx h
+	mvi a	LF
+	mov m,a
+	
+	; get length of LINE
+	mvi c	0
+	lxi h	LINE
+i_count0
+	mov	a,m
+	cpi	NULL
+	jz	i_count1
+	inr c
+	inx h
+	jmp	i_count0
+	
+i_count1
+	; c now holds num of chars in LINE (will always be less than 80)
+	mov	l,c
+	mvi h	0
+	shld	LINESIZE	; LINESIZE is length of the line to insert
+	
+	; now shift up the entire buffer starting at CURBUFFERPOS down to STARTPOS
+	; HL points to CURBUFFERPOS
+	; DE points to CURBUFFERPOS + LINESIZE
+	; BC holds LINESIZE
+	; then call move_up
+	
+	; load DE with CURBUFFERPOS + LINESIZE
+	lhld	CURBUFFERPOS
+	dcx h			; subtract 1 since CURBUFFERPOS points to the NULL after buffer
+	mov a,c			; add c (linesize) to HL for DE result
+	add l
+	mov l,a			; and save value
+	mvi a 0
+	adc h
+	mov h,a			; and save value
+	; HL holds new address - save into DE
+	mov d,h
+	mov e,l
+	; DE now holds the move-to address
+	
+	; now load HL-STARTPOS into BC as the counter
+	; the BC counter (HL - STARTPOS) is the counter
+	lhld 	START_ADDRESS
+	mov b,h
+	mov c,l		; BC holds STARTPOS
+	
+	lhld 	CURBUFFERPOS
+	dcx	h		; subtract BC (START_ADDRESS) from HL (CURBUFFERPOS) -1 (before the NULL)
+	
+	mov a,l
+	sub c
+	mov l,a
+	
+	mov a,h
+	sbb b
+	mov h,a		; HL now holds the counter
+	
+	mov b,h
+	mov c,l		; BC now holds the counter
+	inx b		; account for move_up counting 1 less than the counter
+	
+	lhld CURBUFFERPOS
+	dcx h
+	
+	; Now shift from STARTPOS to CURBUFFERPOS up to DE
+	; DB cbh
+	call	move_up
+	
+	; set new value of CURBUFFERPOS (CURBUFFERPOS + LINESIZE)
+	lhld	CURBUFFERPOS
+	mov	d,h
+	mov e,l		; save in DE
+	lhld 	LINESIZE
+	dad d		; add them
+	shld	CURBUFFERPOS
+	
+	
+	; now insert LINE at STARTPOS
+	lhld 	START_ADDRESS		; get the address
+	mov d,h
+	mov e,l				; save into DE
+	lxi h	LINE
+ins1
+	mov a,m
+	cpi	NULL
+	jz	ins2		; stop at EOL
+	stax d
+	inx h
+	inx d
+	jmp	ins1
+	
+ins2	; insert done
+	; add LINESIZE to STARTADDRESS
+	lhld START_ADDRESS
+	mov d,h
+	mov e,l
+	lhld LINESIZE
+	dad d
+	shld START_ADDRESS
+	jmp	insert_match_again
+	; continues on during insert until user hits ESC
+	
+ins3		
+	; done
+	mvi a	0		; restore prompt
+	call	showprompt
+	call	crlf
+	jmp		loop
+		
+	
+	
+insert_error	; badly formatted line number
+	lxi	h	INSERTMSG1
+	call	puts
+	jmp		loop
+	
+INSERTMSG1 DB "Bad Line or Line Number",CR,LF,NULL	
+INSERTMSG2	DB "Type line to insert then press <enter>",CR,LF,NULL
+	
 	
 	
 ; ----------- delete --------------------
@@ -432,18 +661,20 @@ delete_error	; badly formatted line number
 	
 DELETEMSG1 DB "Bad Line or Line Number",CR,LF,NULL
 	
+	
+	
 ; -------------- list ----------------------
 list		; display buffer
 
 	call	crlf
 	
-	;; show line number
+	;; show starting line number
 	lxi h	0001h		; line number
 	shld	LINENUMBER
 
-	mov a,h
+	mov a,h			; (MSB)
 	call	printdecimal
-	mov a,l
+	mov a,l			; (LSB)
 	call	printdecimal
 	mvi a	':'
 	call	putc
@@ -738,7 +969,7 @@ move_up		; a=1
 	dcx b	; dec counter
 	mov	a,b
 	ora c
-	jnz		move_up
+	jnz		move_up		; NOTE: stops at BC=00 account for it by adding 1 to BC beforehand
 	ret
 	
 	; counter = last_memory_used - start_of_TO_address
